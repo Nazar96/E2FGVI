@@ -6,8 +6,6 @@ import importlib
 import os
 import argparse
 from tqdm import tqdm
-import matplotlib.pyplot as plt
-from matplotlib import animation
 import torch
 
 from core.utils import to_tensors
@@ -180,7 +178,7 @@ def main_worker():
 
     # saving videos
     print('Saving videos...')
-    save_dir_name = 'results'
+    save_dir_name = '/result/'
     ext_name = '_results.mp4'
     save_base_name = args.video.split('/')[-1]
     save_name = save_base_name.replace(
@@ -192,32 +190,10 @@ def main_worker():
                              default_fps, size)
     for f in range(video_length):
         comp = comp_frames[f].astype(np.uint8)
-        writer.write(cv2.cvtColor(comp, cv2.COLOR_BGR2RGB))
-    writer.release()
-    print(f'Finish test! The result video is saved in: {save_path}.')
-
-    # show results
-    print('Let us enjoy the result!')
-    fig = plt.figure('Let us enjoy the result')
-    ax1 = fig.add_subplot(1, 2, 1)
-    ax1.axis('off')
-    ax1.set_title('Original Video')
-    ax2 = fig.add_subplot(1, 2, 2)
-    ax2.axis('off')
-    ax2.set_title('Our Result')
-    imdata1 = ax1.imshow(frames[0])
-    imdata2 = ax2.imshow(comp_frames[0].astype(np.uint8))
-
-    def update(idx):
-        imdata1.set_data(frames[idx])
-        imdata2.set_data(comp_frames[idx].astype(np.uint8))
-
-    fig.tight_layout()
-    anim = animation.FuncAnimation(fig,
-                                   update,
-                                   frames=len(frames),
-                                   interval=50)
-    plt.show()
+        cv2.imwrite(f'/result/{f}.png', comp)
+        # writer.write(cv2.cvtColor(comp, cv2.COLOR_BGR2RGB))
+    # writer.release()
+    # print(f'Finish test! The result video is saved in: {save_path}.')
 
 
 if __name__ == '__main__':

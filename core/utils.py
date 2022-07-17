@@ -7,10 +7,10 @@ from PIL import Image, ImageOps
 import zipfile
 
 import torch
-import matplotlib
-import matplotlib.patches as patches
-from matplotlib.path import Path
-from matplotlib import pyplot as plt
+# import matplotlib
+# import matplotlib.patches as patches
+# from matplotlib.path import Path
+# from matplotlib import pyplot as plt
 from torchvision import transforms
 
 # matplotlib.use('agg')
