@@ -231,6 +231,8 @@ def main_worker():
                     comp_frames[idx] = comp_frames[idx].astype(
                         np.float32) * 0.5 + img.astype(np.float32) * 0.5
 
+    logger.info(f"frames {video_length}/{video_length}")
+
     # saving videos
     save_dir_name = '/result/'
     ext_name = '_results.mp4'
