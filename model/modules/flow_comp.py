@@ -65,11 +65,12 @@ class SPyNet(nn.Module):
 
         self.basic_module = nn.ModuleList(
             [SPyNetBasicModule() for _ in range(6)])
-
+    
         if use_pretrain:
             if isinstance(pretrained, str):
-                print("load pretrained SPyNet...")
-                load_checkpoint(self, pretrained, strict=True)
+                import contextlib
+                with contextlib.redirect_stdout(None):
+                    load_checkpoint(self, pretrained, strict=True)
             elif pretrained is not None:
                 raise TypeError('[pretrained] should be str or None, '
                                 f'but got {type(pretrained)}.')

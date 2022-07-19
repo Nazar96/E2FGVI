@@ -5,10 +5,14 @@ import numpy as np
 import importlib
 import os
 import argparse
-from tqdm import tqdm
 import torch
+import sys
 
 from core.utils import to_tensors
+
+from pathlib import Path
+from typing import Union
+import logging.config
 
 parser = argparse.ArgumentParser(description="E2FGVI")
 parser.add_argument("-v", "--video", type=str, required=True)
@@ -31,6 +35,60 @@ ref_length = args.step  # ref_step
 num_ref = args.num_ref
 neighbor_stride = args.neighbor_stride
 default_fps = args.savefps
+
+
+def get_dict_config(log_filename: Union[str, Path] = "logfile.log"):
+    return {
+        "version": 1,
+        "disable_existing_loggers": False,
+        "formatters": {
+            "default": {
+                "format": "[%(asctime)s] %(levelname)s in %(name)s (line: %(lineno)d) - %(message)s",
+                "datefmt": "%Y-%m-%d %H:%M:%S",
+            },
+            "simple": {
+                "format": "%(message)s",
+            },
+        },
+        "handlers": {
+            "logfile": {
+                "formatter": "default",
+                "level": "DEBUG",  # FILTER: All logs
+                "class": "logging.handlers.RotatingFileHandler",
+                # Params for class above:
+                "filename": log_filename,
+                "mode": "w",
+                "encoding": "utf-8",
+            },
+            "verbose_output": {
+                "formatter": "default",
+                "level": "INFO",  # FILTER: Only ERROR and CRITICAL logs
+                "class": "logging.StreamHandler",
+                "stream": "ext://sys.stdout",
+            }
+        },
+        "loggers": {
+            "": {   # root logger
+                "level": "DEBUG",
+                "handlers": [
+                    "verbose_output"
+                ]
+            }
+            # "__main__": {  # The name of the logger, this SHOULD match the module!
+            #     "level": "INFO",  # FILTER: only INFO logs and above from "__main__" logger
+            #     "handlers": [
+            #         "verbose_output",  # Refer the handler defined above
+            #     ],
+            # },
+        },
+    }
+
+
+logging.config.dictConfig(get_dict_config(Path("test.log")))
+logger = logging.getLogger(__name__)
+
+# handler = logging.StreamHandler(sys.stdout)
+# logger.addHandler(handler)
 
 
 # sample reference frames from the whole video
@@ -116,14 +174,10 @@ def main_worker():
     model = net.InpaintGenerator().to(device)
     data = torch.load(args.ckpt, map_location=device)
     model.load_state_dict(data)
-    print(f'Loading model from: {args.ckpt}')
     model.eval()
 
     # prepare datset
     args.use_mp4 = True if args.video.endswith('.mp4') else False
-    print(
-        f'Loading videos and masks from: {args.video} | INPUT MP4 format: {args.use_mp4}'
-    )
     frames = read_frame_from_videos(args)
     frames, size = resize_frames(frames, size)
     h, w = size[1], size[0]
@@ -140,8 +194,9 @@ def main_worker():
     comp_frames = [None] * video_length
 
     # completing holes by e2fgvi
-    print(f'Start test...')
-    for f in tqdm(range(0, video_length, neighbor_stride)):
+    for f in range(0, video_length, neighbor_stride):
+        logger.info(f"frames {f}/{video_length}")
+        
         neighbor_ids = [
             i for i in range(max(0, f - neighbor_stride),
                              min(video_length, f + neighbor_stride + 1))
@@ -177,7 +232,6 @@ def main_worker():
                         np.float32) * 0.5 + img.astype(np.float32) * 0.5
 
     # saving videos
-    print('Saving videos...')
     save_dir_name = '/result/'
     ext_name = '_results.mp4'
     save_base_name = args.video.split('/')[-1]
@@ -186,14 +240,10 @@ def main_worker():
     if not os.path.exists(save_dir_name):
         os.makedirs(save_dir_name)
     save_path = os.path.join(save_dir_name, save_name)
-    writer = cv2.VideoWriter(save_path, cv2.VideoWriter_fourcc(*"mp4v"),
-                             default_fps, size)
+
     for f in range(video_length):
         comp = comp_frames[f].astype(np.uint8)
         cv2.imwrite(f'/result/{f}.png', comp)
-        # writer.write(cv2.cvtColor(comp, cv2.COLOR_BGR2RGB))
-    # writer.release()
-    # print(f'Finish test! The result video is saved in: {save_path}.')
 
 
 if __name__ == '__main__':
