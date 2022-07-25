@@ -245,6 +245,7 @@ def main_worker():
 
     for f in range(video_length):
         comp = comp_frames[f].astype(np.uint8)
+        comp = cv2.cvtColor(comp, cv2.COLOR_RGB2BGR)
         cv2.imwrite(f'/result/{f}.png', comp)
 
 
